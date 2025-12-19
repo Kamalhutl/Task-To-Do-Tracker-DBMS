@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker DBMS</title>
+    <style>
+        /* --- Basic Setup --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- Main Container --- */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #0056b3;
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        main {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+
+        /* --- Task Form --- */
+        .form-container {
+            padding: 20px;
+            background-color: #fdfdfd;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        .form-container h2 {
+            margin-top: 0;
+            color: #0056b3;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        #task-form div {
+            margin-bottom: 15px;
+        }
+
+        #task-form label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        #task-form input[type="text"],
+        #task-form input[type="date"],
+        #task-form select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .form-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        button[type="submit"] {
+            background-color: #28a745;
+            color: white;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #218838;
+        }
+
+        #clear-form-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        #clear-form-btn:hover {
+            background-color: #5a6268;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* --- Task List --- */
+        .list-container {
+            grid-column: 2 / 3;
+        }
+
+        .list-container h2 {
+            margin-top: 0;
+        }
+
+        /* Filter Buttons */
+        .filters {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .filters button {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+
+        .filters button:hover {
+            background-color: #d1d6db;
+        }
+
+        .filters button.active {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        /* Table wrapper for horizontal scroll on small screens */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        /* Task Table */
+        #task-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        #task-table th,
+        #task-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        #task-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        /* Specific column styling */
+        #task-table th:first-child,
+        #task-table td:first-child {
+            width: 40px;
+            text-align: center;
+        }
+
+        .task-done-cb {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        #task-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        #task-table tr:hover {
+            background-color: #f1f3f5;
+        }
+
+        /* Task Action Buttons */
+        .action-btn {
+            font-size: 0.85rem;
+            padding: 5px 10px;
+            margin-right: 5px;
+            border-radius: 4px;
+        }
+
+        .edit-btn {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        /* Status and Overdue Styling */
+        .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-in-progress {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .overdue {
+            color: #dc3545;
+            font-weight: 700;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+            .list-container {
+                grid-row: 1;
+            }
+            .form-container {
+                grid-row: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Task Tracker Database</h1>
+    </header>
+
+    <main>
+        <!-- LEFT: FORM -->
+        <aside class="form-container">
+            <h2>Add / Update Task</h2>
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+
+                <div>
+                    <label for="task-name">Task Name</label>
+                    <input type="text" id="task-name" placeholder="e.g., Design ERD" required>
+                </div>
+
+                <div>
+                    <label for="task-user">User Name</label>
+                    <input type="text" id="task-user" placeholder="e.g., Kamal">
+                </div>
+                
+                <div>
+                    <label for="task-category">Category</label>
+                    <select id="task-category">
+                        <option value="Default">Default</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Work">Work</option>
+                        <option value="Study">Study</option>
+                        <option value="Wishlist">Wishlist</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="task-Description">Description</label>
+                    <input type="text" id="task-Description" placeholder="e.g., Complete Project" required>
+                </div>
+
+                <div>
+                    <label for="task-deadline">Deadline</label>
+                    <input type="date" id="task-deadline">
+                </div>
+
+                <div>
+                    <label for="task-status">Status</label>
+                    <select id="task-status">
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="save-task-btn">Save Task</button>
+                    <button type="button" id="clear-form-btn">Clear</button>
+                </div>
+            </form>
+        </aside>
+
+        <!-- RIGHT: LIST -->
+        <section class="list-container">
+            <h2>Task List</h2>
+
+            <div class="filters" id="filter-container">
+                <button data-filter="all" class="active">All</button>
+                <button data-filter="pending">Pending</button>
+                <button data-filter="in-progress">In Progress</button>
+                <button data-filter="overdue">Overdue</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="task-table">
+                    <thead>
+                    <tr>
+                        <th>Done</th>
+                        <th>Task</th>
+                        <th>User</th>
+                        <th>Category</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>                       
+                    <tbody id="task-list-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const API_URL = 'http://localhost:3000/api/tasks';
+
+    const taskForm = document.getElementById('task-form');
+    const taskIdInput = document.getElementById('task-id');
+    const taskNameInput = document.getElementById('task-name');
+    const taskCategoryInput = document.getElementById('task-category');
+    const taskDescriptionInput = document.getElementById('task-Description');
+    const taskDeadlineInput = document.getElementById('task-deadline');
+    const taskStatusInput = document.getElementById('task-status');
+    const taskUserInput = document.getElementById('task-user');
+    const taskListBody = document.getElementById('task-list-body');
+    const clearFormBtn = document.getElementById('clear-form-btn');
+    const filterContainer = document.getElementById('filter-container');
+
+    let currentFilter = 'all';
+    let allTasks = [];
+
+    // --- FETCH TASKS ---
+    const fetchTasks = async () => {
+        try {
+            const res = await fetch(API_URL);
+            if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+            allTasks = await res.json();
+            renderTasks();
+        } catch (err) {
+            console.error(err);
+            taskListBody.innerHTML = `
+                <tr><td colspan="7" style="text-align:center;color:red">
+                    Failed to load tasks. Is the server running?
+                </td></tr>`;
+        }
+    };
+
+    // --- RENDER TABLE ---
+    const renderTasks = () => {
+        taskListBody.innerHTML = '';
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const filtered = allTasks.filter(t => {
+            const d = t.Deadline ? new Date(t.Deadline) : null;
+            const isOverdue = d && d < today;
+
+            if (currentFilter === 'all') return true;
+            if (currentFilter === 'pending') return t.Status === 'Pending' && !isOverdue;
+            if (currentFilter === 'in-progress') return t.Status === 'In Progress' && !isOverdue;
+            if (currentFilter === 'overdue') return isOverdue;
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            taskListBody.innerHTML = `
+                <tr><td colspan="7" style="text-align:center;">No tasks found for this filter.</td></tr>`;
+            return;
+        }
+
+        filtered.forEach(task => {
+            const tr = document.createElement('tr');
+
+            const deadlineDate = task.Deadline ? new Date(task.Deadline) : null;
+            const isOverdue = deadlineDate && deadlineDate < today;
+            const deadlineDisplay = task.Deadline
+                ? new Date(task.Deadline).toLocaleDateString()
+                : 'N/A';
+
+            let statusClass = '';
+            if (task.Status === 'Pending') statusClass = 'status-pending';
+            else if (task.Status === 'In Progress') statusClass = 'status-in-progress';
+            else if (task.Status === 'Completed') statusClass = 'status-completed';
+
+            const descriptionText = task.Description || '';
+            const userText = task.UserName || task.userName || '';
+
+            tr.innerHTML = `
+                <td>
+                    <input type="checkbox" class="task-done-cb" data-id="${task.TaskID}">
+                </td>
+                <td>
+                    <div style="font-weight:600;">${task.Title}</div>
+                    <div style="color:#666;font-size:0.85em;margin-top:4px;">
+                        ${descriptionText}
+                    </div>
+                </td>
+                <td>${userText}</td>
+                <td>${task.Category}</td>
+                <td class="${isOverdue ? 'overdue' : ''}">
+                    ${deadlineDisplay} ${isOverdue ? '(Overdue)' : ''}
+                </td>
+                <td>
+                    <span class="status ${statusClass}">${task.Status}</span>
+                </td>
+                <td>
+                    <button class="action-btn edit-btn" data-id="${task.TaskID}">Edit</button>
+                    <button class="action-btn delete-btn" data-id="${task.TaskID}">Delete</button>
+                </td>
+            `;
+            taskListBody.appendChild(tr);
+        });
+    };
+
+    // --- CLEAR FORM ---
+    const clearForm = () => {
+        taskForm.reset();
+        taskIdInput.value = '';
+        document.getElementById('save-task-btn').innerText = 'Save Task';
+    };
+
+    clearFormBtn.addEventListener('click', clearForm);
+
+    // --- SUBMIT FORM (ADD / UPDATE) ---
+    taskForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const id = taskIdInput.value;
+        const title = taskNameInput.value.trim();
+        const category = taskCategoryInput.value;
+        const description = taskDescriptionInput.value.trim();
+        const deadline = taskDeadlineInput.value;
+        const status = taskStatusInput.value;
+        const userName = taskUserInput.value.trim();
+
+        const payload = { title, category, description, deadline, status, userName };
+
+        let method = 'POST';
+        let url = API_URL;
+        if (id) {
+            method = 'PUT';
+            url = `${API_URL}/${id}`;
+        }
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error('Save failed: ' + res.status);
+            await fetchTasks();
+            clearForm();
+        } catch (err) {
+            console.error(err);
+            alert('Error saving task. Check server.');
+        }
+    });
+
+    // --- ROW ACTIONS: DELETE / DONE / EDIT ---
+    taskListBody.addEventListener('click', async (e) => {
+        const target = e.target;
+
+        // DELETE
+        if (target.classList.contains('delete-btn')) {
+            const id = target.dataset.id;
+            if (!confirm('Delete this task permanently?')) return;
+            try {
+                const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed: ' + res.status);
+                await fetchTasks();
+            } catch (err) {
+                console.error(err);
+                alert('Error deleting task.');
+            }
+            return;
+        }
+
+        // DONE (delete when checked)
+        if (target.classList.contains('task-done-cb')) {
+            const id = target.dataset.id;
+            const task = allTasks.find(t => t.TaskID === parseInt(id));
+            if (!task) return;
+
+            if (!confirm('Marking as Done will permanently DELETE this task. Continue?')) {
+                target.checked = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed: ' + res.status);
+
+                const row = target.closest('tr');
+                if (row) {
+                    row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(30px)';
+                    setTimeout(fetchTasks, 300);
+                } else {
+                    await fetchTasks();
+                }
+            } catch (err) {
+                console.error('Deletion error:', err);
+                alert('Error deleting task. Check server logs.');
+                target.checked = false;
+            }
+            return;
+        }
+
+        // EDIT
+        if (target.classList.contains('edit-btn')) {
+            const id = target.dataset.id;
+            const task = allTasks.find(t => t.TaskID === parseInt(id));
+            if (!task) return;
+
+            taskIdInput.value = task.TaskID;
+            taskNameInput.value = task.Title;
+            taskCategoryInput.value = task.Category;
+            taskDescriptionInput.value = task.Description || '';
+            taskUserInput.value = task.UserName || task.userName || '';   
+            taskDeadlineInput.value = task.Deadline
+                ? new Date(task.Deadline).toISOString().slice(0, 10)
+                : '';
+            taskStatusInput.value = task.Status || 'Pending';
+
+            document.getElementById('save-task-btn').innerText = 'Update Task';
+            taskForm.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+
+    // --- FILTER BUTTONS ---
+    filterContainer.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            currentFilter = e.target.dataset.filter;
+            document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            renderTasks();
+        }
+    });
+
+    // --- INITIAL LOAD ---
+    fetchTasks();
+});
+</script>
+</body>
+</html>
